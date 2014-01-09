@@ -68,18 +68,15 @@ def Search( item ):
                                   iconImage=it["rating"],
                                   thumbnailImage=it["language_flag"]
                                   )
-      if it["sync"]:
-        listitem.setProperty( "sync", "true" )
-      else:
-        listitem.setProperty( "sync", "false" )
-    
-      if it.get("hearing_imp", False):
-        listitem.setProperty( "hearing_imp", "true" )
-      else:
-        listitem.setProperty( "hearing_imp", "false" )
+
+      listitem.setProperty( "sync", ("false", "true")[it["sync"]] )
+      listitem.setProperty( "hearing_imp", ("false", "true")[it.get("hearing_imp", False)] )
       
-      url = "plugin://%s/?action=download&link=%s&ID=%s&filename=%s" % (__scriptid__, it["link"], 
-it["ID"],it["filename"])
+      url = "plugin://%s/?action=download&link=%s&ID=%s&filename=%s" % (__scriptid__,
+                                                                        it["link"],
+                                                                        it["ID"],
+                                                                        it["filename"]
+                                                                        )
       
       xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=listitem,isFolder=False)
 

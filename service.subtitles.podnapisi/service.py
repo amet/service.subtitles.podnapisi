@@ -6,7 +6,7 @@ import xbmc
 import urllib
 import xbmcvfs
 import xbmcaddon
-import xbmcgui,xbmcplugin,shutil,zipfile
+import xbmcgui,xbmcplugin,shutil
 
 __addon__ = xbmcaddon.Addon()
 __author__     = __addon__.getAddonInfo('author')
@@ -93,10 +93,12 @@ def Download(url,filename):
     subFile.write(f.read())
   subFile.close()
   xbmc.sleep(500)
-  zipf = zipfile.ZipFile(zip, mode='r')
-  for subfile in zipf.namelist():
-    zipf.extract(subfile, __temp__)
-    file = os.path.join(__temp__, subfile)
+#  zipf = zipfile.ZipFile(zip, mode='r')
+#  for subfile in zipf.namelist():
+#    zipf.extract(subfile, __temp__)
+  xbmc.executebuiltin(('XBMC.Extract("%s","%s")' % (zip,__temp__,)).encode('utf-8'), True)
+  for subfile in xbmcvfs.listdir(zip)[1]:
+    file = os.path.join(__temp__, subfile.decode('utf-8'))
     if (os.path.splitext( file )[1] in exts):
       subtitle_list.append(file)
     

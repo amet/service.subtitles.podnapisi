@@ -31,6 +31,7 @@ def Search( item ):
   osdb_server = OSDBServer()
   osdb_server.create()    
   subtitles_list = []
+  match          = False
   
   if item['temp'] : 
     hash_search = False
@@ -51,6 +52,7 @@ def Search( item ):
     log( __scriptid__ ,"Search for [%s] by hash" % (os.path.basename( item['file_original_path'] ),))
     subtitles_list = osdb_server.searchsubtitles_pod( OShash ,item['3let_language'], False)
   if not subtitles_list:
+    match          = True
     log( __scriptid__ ,"Search for [%s] by name" % (os.path.basename( item['file_original_path'] ),))
     subtitles_list = osdb_server.searchsubtitlesbyname_pod(item['title'],
                                                            item['tvshow'],
@@ -71,14 +73,15 @@ def Search( item ):
       listitem.setProperty( "sync", ("false", "true")[it["sync"]] )
       listitem.setProperty( "hearing_imp", ("false", "true")[it["hearing_imp"]] )
       
-      url = "plugin://%s/?action=download&link=%s&filename=%s&movie_id=%s&season=%s&episode=%s&hash=%s" % (__scriptid__,
-                                                                  it["link"],
-                                                                  it["filename"],
-                                                                  it["movie_id"],
-                                                                  it["season"],
-                                                                  it["episode"],
-                                                                  OShash
-                                                                  )
+      url = "plugin://%s/?action=download&link=%s&filename=%s&movie_id=%s&season=%s&episode=%s&hash=%s&match=%s" %(__scriptid__,
+                                                                                                                    it["link"],
+                                                                                                                    it["filename"],
+                                                                                                                    it["movie_id"],
+                                                                                                                    it["season"],
+                                                                                                                    it["episode"],
+                                                                                                                    OShash,
+                                                                                                                    str(match)
+                                                                                                                    )
       
       xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=listitem,isFolder=False)
 
@@ -194,7 +197,7 @@ elif params['action'] == 'download':
 
   osdb_server = OSDBServer()
   osdb_server.create()
-  url = osdb_server.download(params["link"], params["movie_id"], params["season"], params["episode"], params["hash"])
+  url = osdb_server.download(params["link"], params["movie_id"], params["season"], params["episode"], params["hash"], params["match"])
   if url:
     subs = Download(url,params["filename"])
     for sub in subs:

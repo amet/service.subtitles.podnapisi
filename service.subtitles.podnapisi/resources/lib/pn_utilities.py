@@ -262,11 +262,11 @@ class OSDBServer:
     except :
       return self.subtitles_list
   
-  def download(self,id,movie_id, season, episode, hash):
+  def download(self,id,movie_id, season, episode, hash, match):
     if (self.connected):
       id_pod =[]
       id_pod.append(str(id))
-      if (__addon__.getSetting("PNmatch") == 'true'):
+      if (__addon__.getSetting("PNmatch") == 'true' and match != "False"):
         log( __scriptid__ ,"Sending match to Podnapisi server")
         result = self.podserver.match(self.pod_session, hash, int(movie_id), int(season), int(episode), "")
         if result['status'] == 200:

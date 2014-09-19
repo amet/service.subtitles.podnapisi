@@ -266,7 +266,12 @@ class OSDBServer:
     if (self.connected):
       id_pod =[]
       id_pod.append(str(id))
-      self.podserver.match(self.pod_session, hash, int(movie_id), int(season), int(episode), "")
+      if (__addon__.getSetting("PNmatch") == 'true'):
+        log( __scriptid__ ,"Sending match to Podnapisi server")
+        result = self.podserver.match(self.pod_session, hash, int(movie_id), int(season), int(episode), "")
+        if result['status'] == 200:
+          log( __scriptid__ ,"Match successfuly sent")
+
       download = self.podserver.download(self.pod_session , id_pod)
       if str(download['status']) == "200" and len(download['names']) > 0 :
         download_item = download["names"][0]

@@ -110,15 +110,15 @@ def normalizeString(str):
          'NFKD', unicode(unicode(str, 'utf-8'))
          ).encode('ascii','ignore')
 
-def hashFile(file_path, rar=False):
+def OpensubtitlesHash(file_path, rar=False):
     if rar:
       return OpensubtitlesHashRar(file_path)
       
     log( __scriptid__,"Hash Standard file")  
     longlongformat = 'q'  # long long
     bytesize = struct.calcsize(longlongformat)
-    f = xbmcvfs.File(file_path)
     
+    f = xbmcvfs.File(file_path)
     filesize = f.size()
     hash = filesize
     
@@ -136,30 +136,65 @@ def hashFile(file_path, rar=False):
         hash = hash & 0xFFFFFFFFFFFFFFFF
     
     returnHash = "%016x" % hash
-    return filesize,returnHash
+    return returnHash
+
+def OpensubtitlesHashRar(firsrarfile):
+    log( __name__,"Hash Rar file")
+    f = xbmcvfs.File(firsrarfile)
+    a=f.read(4)
+    if a!='Rar!':
+        raise Exception('ERROR: This is not rar file.')
+    seek=0
+    for i in range(4):
+        f.seek(max(0,seek),0)
+        a=f.read(100)        
+        type,flag,size=struct.unpack( '<BHH', a[2:2+5]) 
+        if 0x74==type:
+            if 0x30!=struct.unpack( '<B', a[25:25+1])[0]:
+                raise Exception('Bad compression method! Work only for "store".')            
+            s_partiizebodystart=seek+size
+            s_partiizebody,s_unpacksize=struct.unpack( '<II', a[7:7+2*4])
+            if (flag & 0x0100):
+                s_unpacksize=(struct.unpack( '<I', a[36:36+4])[0] <<32 )+s_unpacksize
+                log( __name__ , 'Hash untested for files biger that 2gb. May work or may generate bad hash.')
+            lastrarfile=getlastsplit(firsrarfile,(s_unpacksize-1)/s_partiizebody)
+            hash=addfilehash(firsrarfile,s_unpacksize,s_partiizebodystart)
+            hash=addfilehash(lastrarfile,hash,(s_unpacksize%s_partiizebody)+s_partiizebodystart-65536)
+            f.close()
+            return (s_unpacksize,"%016x" % hash )
+        seek+=size
+    raise Exception('ERROR: Not Body part in rar file.')
+
 
 class OSDBServer:
+  
   def create(self):
     self.subtitles_list = []
- 
+    self.connected = False
+    self.pod_session = None
+    self.podserver   = xmlrpclib.Server('http://ssp.podnapisi.net:8000')      
+    init        = self.podserver.initiate(USER_AGENT)
+    hash        = md5()
+    hash.update(__addon__.getSetting( "PNpass" ))
+    self.password = sha256(str(hash.hexdigest()) + str(init['nonce'])).hexdigest()
+    self.user     = __addon__.getSetting( "PNuser" )
+    if init['status'] == 200:
+      self.pod_session = init['session']
+      self.connected   = self.login()
+      if (self.connected):
+        log( __scriptid__ ,"Connected to Podnapisi server")
+
+
   def mergesubtitles( self, stack ):
     if( len ( self.subtitles_list ) > 0 ):
       self.subtitles_list = sorted(self.subtitles_list, compare_columns)
 
   def searchsubtitles_pod( self, movie_hash, lang , stack):
     # movie_hash = "e1b45885346cfa0b" # Matrix Hash, Debug only
-    podserver = xmlrpclib.Server('http://ssp.podnapisi.net:8000')      
     try:
-      init = podserver.initiate(USER_AGENT)
-      hash = md5()
-      hash.update(__addon__.getSetting( "PNpass" ))
-      password256 = sha256(str(hash.hexdigest()) + str(init['nonce'])).hexdigest()
-      if init['status'] == 200:
-        pod_session = init['session']
-        podserver.authenticate(pod_session, __addon__.getSetting( "PNuser" ), password256)
-        podserver.setFilters(pod_session, True, lang , False)
-        search = podserver.search(pod_session , [str(movie_hash)])
-
+      if (self.connected):
+        self.podserver.setFilters(self.pod_session, True, lang , False)
+        search = self.podserver.search(self.pod_session , [str(movie_hash)])
         if search['status'] == 200 and len(search['results']) > 0 :
           search_item = search["results"][movie_hash]
           for item in search_item["subtitles"]:
@@ -176,8 +211,12 @@ class OSDBServer:
             else:
               name = item['release']
 
+            details = search['results'][movie_hash]
             self.subtitles_list.append({'filename'      : name,
                                         'link'          : str(item["id"]),
+                                        'movie_id'      : str(details["movieId"]),
+                                        'season'        : str(details["tvSeason"]),
+                                        'episode'       : str(details["tvEpisode"]),     
                                         'language_name' : languageTranslate((item["lang"]),2,0),
                                         'language_flag' : flag_image,
                                         'rating'        : str(int(item['rating'])*2),
@@ -185,7 +224,7 @@ class OSDBServer:
                                         'hearing_imp'   : "n" in item['flags']
                                         })
 
-        self.mergesubtitles(stack)
+          self.mergesubtitles(stack)
       return self.subtitles_list
     except :
       return self.subtitles_list
@@ -209,6 +248,9 @@ class OSDBServer:
 
           self.subtitles_list.append({'filename'      : filename,
                                       'link'          : self.get_element(subtitle, "id"),
+                                      'movie_id'      : self.get_element(subtitle, "movieId"),
+                                      'season'        : self.get_element(subtitle, "tvSeason"),
+                                      'episode'       : self.get_element(subtitle, "tvEpisode"),
                                       'language_name' : languageTranslate(self.get_element(subtitle, "languageId"),1,0),
                                       'language_flag' : languageTranslate(self.get_element(subtitle, "languageId"),1,2),
                                       'rating'        : str(int(self.get_element(subtitle, "rating"))*2),
@@ -220,26 +262,12 @@ class OSDBServer:
     except :
       return self.subtitles_list
   
-  def download(self,pod_session,  id):
-    podserver = xmlrpclib.Server('http://ssp.podnapisi.net:8000')  
-    init = podserver.initiate(USER_AGENT)
-    hash = md5()
-    hash.update(__addon__.getSetting( "PNpass" ))
-    id_pod =[]
-    id_pod.append(str(id))
-    password256 = sha256(str(hash.hexdigest()) + str(init['nonce'])).hexdigest()
-    if init['status'] == 200:
-      pod_session = init['session']
-      auth = podserver.authenticate(pod_session, __addon__.getSetting( "PNuser" ), password256)
-      if auth['status'] == 300: 
-        log( __scriptid__ ,__language__(32005))
-        xbmc.executebuiltin(u'Notification(%s,%s,5000,%s)' %(__scriptname__,
-                                                             __language__(32005),
-                                                             os.path.join(__cwd__,"icon.png")
-                                                            )
-                            )
-        return None 
-      download = podserver.download(pod_session , id_pod)
+  def download(self,id,movie_id, season, episode, hash):
+    if (self.connected):
+      id_pod =[]
+      id_pod.append(str(id))
+      self.podserver.match(self.pod_session, hash, int(movie_id), int(season), int(episode), "")
+      download = self.podserver.download(self.pod_session , id_pod)
       if str(download['status']) == "200" and len(download['names']) > 0 :
         download_item = download["names"][0]
         if str(download["names"][0]['id']) == str(id):
@@ -247,6 +275,18 @@ class OSDBServer:
           
     return None  
  
+  def login(self):
+    auth = self.podserver.authenticate(self.pod_session, self.user, self.password)
+    if auth['status'] == 300: 
+      log( __scriptid__ ,__language__(32005))
+      xbmc.executebuiltin(u'Notification(%s,%s,5000,%s)' %(__scriptname__,
+                                                           __language__(32005),
+                                                           os.path.join(__cwd__,"icon.png")
+                                                          )
+                          )
+      return False  
+    return True
+
   def get_element(self, element, tag):
     if element.getElementsByTagName(tag)[0].firstChild:
       return element.getElementsByTagName(tag)[0].firstChild.data

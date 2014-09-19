@@ -25,7 +25,7 @@ __temp__       = xbmc.translatePath( os.path.join( __profile__, 'temp') ).decode
 
 sys.path.append (__resource__)
 
-from pn_utilities import OSDBServer, log, hashFile, normalizeString, languageTranslate
+from pn_utilities import OSDBServer, log, OpensubtitlesHash, normalizeString, languageTranslate
 
 def Search( item ):
   osdb_server = OSDBServer()
@@ -34,24 +34,22 @@ def Search( item ):
   
   if item['temp'] : 
     hash_search = False
-    file_size   = "000000000"
     SubHash     = "000000000000"
   else:
     try:
-      file_size, SubHash = hashFile(item['file_original_path'], item['temp'])
-      log( __scriptid__ ,"xbmc module hash and size")
+      OShash = OpensubtitlesHash(item['file_original_path'], item['temp'])
+      log( __scriptid__ ,"xbmc module OShash")
       hash_search = True
     except:  
-      file_size   = ""
-      SubHash     = ""
+      OShash     = ""
+      log( __scriptid__ ,"xbmc module OShash failed")
       hash_search = False
   
-  if file_size != "" and SubHash != "":
-    log( __scriptid__ ,"File Size [%s]" % file_size )
-    log( __scriptid__ ,"File Hash [%s]" % SubHash)
+  if OShash != "":
+    log( __scriptid__ ,"OS Hash [%s]" % OShash)
   if hash_search :
     log( __scriptid__ ,"Search for [%s] by hash" % (os.path.basename( item['file_original_path'] ),))
-    subtitles_list = osdb_server.searchsubtitles_pod( SubHash ,item['3let_language'], False)
+    subtitles_list = osdb_server.searchsubtitles_pod( OShash ,item['3let_language'], False)
   if not subtitles_list:
     log( __scriptid__ ,"Search for [%s] by name" % (os.path.basename( item['file_original_path'] ),))
     subtitles_list = osdb_server.searchsubtitlesbyname_pod(item['title'],
@@ -73,9 +71,13 @@ def Search( item ):
       listitem.setProperty( "sync", ("false", "true")[it["sync"]] )
       listitem.setProperty( "hearing_imp", ("false", "true")[it["hearing_imp"]] )
       
-      url = "plugin://%s/?action=download&link=%s&filename=%s" % (__scriptid__,
+      url = "plugin://%s/?action=download&link=%s&filename=%s&movie_id=%s&season=%s&episode=%s&hash=%s" % (__scriptid__,
                                                                   it["link"],
-                                                                  it["filename"]
+                                                                  it["filename"],
+                                                                  it["movie_id"],
+                                                                  it["season"],
+                                                                  it["episode"],
+                                                                  OShash
                                                                   )
       
       xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=listitem,isFolder=False)
@@ -191,7 +193,8 @@ if params['action'] == 'search':
 elif params['action'] == 'download':
 
   osdb_server = OSDBServer()
-  url = osdb_server.download("", params["link"])
+  osdb_server.create()
+  url = osdb_server.download(params["link"], params["movie_id"], params["season"], params["episode"], params["hash"])
   if url:
     subs = Download(url,params["filename"])
     for sub in subs:

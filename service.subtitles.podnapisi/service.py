@@ -25,11 +25,11 @@ __temp__       = xbmc.translatePath( os.path.join( __profile__, 'temp') ).decode
 
 sys.path.append (__resource__)
 
-from pn_utilities import OSDBServer, log, OpensubtitlesHash, normalizeString, languageTranslate
+from pn_utilities import PNServer, log, OpensubtitlesHash, normalizeString, languageTranslate
 
 def Search( item ):
-  osdb_server = OSDBServer()
-  osdb_server.create()    
+  pn_server = PNServer()
+  pn_server.create()    
   subtitles_list = []
   match          = False
   
@@ -38,7 +38,7 @@ def Search( item ):
     SubHash     = "000000000000"
   else:
     try:
-      OShash = OpensubtitlesHash(item['file_original_path'], item['temp'])
+      OShash = OpensubtitlesHash(item['file_original_path'], item['rar'])
       log( __scriptid__ ,"xbmc module OShash")
       hash_search = True
     except:  
@@ -50,11 +50,11 @@ def Search( item ):
     log( __scriptid__ ,"OS Hash [%s]" % OShash)
   if hash_search :
     log( __scriptid__ ,"Search for [%s] by hash" % (os.path.basename( item['file_original_path'] ),))
-    subtitles_list = osdb_server.searchsubtitles_pod( OShash ,item['3let_language'], False)
+    subtitles_list = pn_server.searchsubtitles_pod( OShash ,item['3let_language'], False)
   if not subtitles_list:
     match          = True
     log( __scriptid__ ,"Search for [%s] by name" % (os.path.basename( item['file_original_path'] ),))
-    subtitles_list = osdb_server.searchsubtitlesbyname_pod(item['title'],
+    subtitles_list = pn_server.searchsubtitlesbyname_pod(item['title'],
                                                            item['tvshow'],
                                                            item['season'],
                                                            item['episode'],
@@ -194,10 +194,9 @@ if params['action'] == 'search':
   Search(item)  
 
 elif params['action'] == 'download':
-
-  osdb_server = OSDBServer()
-  osdb_server.create()
-  url = osdb_server.download(params["link"], params["movie_id"], params["season"], params["episode"], params["hash"], params["match"])
+  pn_server = PNServer()
+  pn_server.create()
+  url = pn_server.download(params)
   if url:
     subs = Download(url,params["filename"])
     for sub in subs:

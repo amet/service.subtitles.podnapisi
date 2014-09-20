@@ -138,9 +138,9 @@ def OpensubtitlesHash(file_path, rar=False):
     returnHash = "%016x" % hash
     return returnHash
 
-def OpensubtitlesHashRar(firsrarfile):
-    log( __name__,"Hash Rar file")
-    f = xbmcvfs.File(firsrarfile)
+def OpensubtitlesHashRar(firstrarfile):
+    log( __scriptid__,"Hash Rar file")
+    f = xbmcvfs.File(firstrarfile)
     a=f.read(4)
     if a!='Rar!':
         raise Exception('ERROR: This is not rar file.')
@@ -157,8 +157,8 @@ def OpensubtitlesHashRar(firsrarfile):
             if (flag & 0x0100):
                 s_unpacksize=(struct.unpack( '<I', a[36:36+4])[0] <<32 )+s_unpacksize
                 log( __name__ , 'Hash untested for files biger that 2gb. May work or may generate bad hash.')
-            lastrarfile=getlastsplit(firsrarfile,(s_unpacksize-1)/s_partiizebody)
-            hash=addfilehash(firsrarfile,s_unpacksize,s_partiizebodystart)
+            lastrarfile=getlastsplit(firstrarfile,(s_unpacksize-1)/s_partiizebody)
+            hash=addfilehash(firstrarfile,s_unpacksize,s_partiizebodystart)
             hash=addfilehash(lastrarfile,hash,(s_unpacksize%s_partiizebody)+s_partiizebodystart-65536)
             f.close()
             return (s_unpacksize,"%016x" % hash )
@@ -166,8 +166,7 @@ def OpensubtitlesHashRar(firsrarfile):
     raise Exception('ERROR: Not Body part in rar file.')
 
 
-class OSDBServer:
-  
+class PNServer:
   def create(self):
     self.subtitles_list = []
     self.connected = False
@@ -272,20 +271,18 @@ class OSDBServer:
     except :
       return self.subtitles_list
   
-  def download(self,id,movie_id, season, episode, hash, match):
+  def download(self,params):
     if (self.connected):
-      id_pod =[]
-      id_pod.append(str(id))
-      if (__addon__.getSetting("PNmatch") == 'true' and match != "False"):
+      if (__addon__.getSetting("PNmatch") == 'true' and params["match"] != "False"):
         log( __scriptid__ ,"Sending match to Podnapisi server")
-        result = self.podserver.match(self.pod_session, hash, int(movie_id), int(season), int(episode), "")
+        result = self.podserver.match(self.pod_session, params["hash"], int(params["movie_id"]), int(params["season"]), int(params["episode"]), "")
         if result['status'] == 200:
           log( __scriptid__ ,"Match successfuly sent")
 
-      download = self.podserver.download(self.pod_session , id_pod)
+      download = self.podserver.download(self.pod_session , [str(params["link"])])
       if str(download['status']) == "200" and len(download['names']) > 0 :
         download_item = download["names"][0]
-        if str(download["names"][0]['id']) == str(id):
+        if str(download["names"][0]['id']) == str(params["link"]):
           return "http://www.podnapisi.net/static/podnapisi/%s" % download["names"][0]['filename']
           
     return None

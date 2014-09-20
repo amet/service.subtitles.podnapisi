@@ -184,6 +184,17 @@ class OSDBServer:
       if (self.connected):
         log( __scriptid__ ,"Connected to Podnapisi server")
 
+  def login(self):
+    auth = self.podserver.authenticate(self.pod_session, self.user, self.password)
+    if auth['status'] == 300: 
+      log( __scriptid__ ,__language__(32005))
+      xbmc.executebuiltin(u'Notification(%s,%s,5000,%s)' %(__scriptname__,
+                                                           __language__(32005),
+                                                           os.path.join(__cwd__,"icon.png")
+                                                          )
+                          )
+      return False  
+    return True
 
   def mergesubtitles( self, stack ):
     if( len ( self.subtitles_list ) > 0 ):
@@ -210,13 +221,12 @@ class OSDBServer:
                 name = "%s S(%s)E(%s)" % (str(search_item["movieTitle"]),str(search_item["tvSeason"]), str(episode), )
             else:
               name = item['release']
-
-            details = search['results'][movie_hash]
+            
             self.subtitles_list.append({'filename'      : name,
                                         'link'          : str(item["id"]),
-                                        'movie_id'      : str(details["movieId"]),
-                                        'season'        : str(details["tvSeason"]),
-                                        'episode'       : str(details["tvEpisode"]),     
+                                        'movie_id'      : str(search_item["movieId"]),
+                                        'season'        : str(search_item["tvSeason"]),
+                                        'episode'       : str(search_item["tvEpisode"]),     
                                         'language_name' : languageTranslate((item["lang"]),2,0),
                                         'language_flag' : flag_image,
                                         'rating'        : str(int(item['rating'])*2),
@@ -278,19 +288,7 @@ class OSDBServer:
         if str(download["names"][0]['id']) == str(id):
           return "http://www.podnapisi.net/static/podnapisi/%s" % download["names"][0]['filename']
           
-    return None  
- 
-  def login(self):
-    auth = self.podserver.authenticate(self.pod_session, self.user, self.password)
-    if auth['status'] == 300: 
-      log( __scriptid__ ,__language__(32005))
-      xbmc.executebuiltin(u'Notification(%s,%s,5000,%s)' %(__scriptname__,
-                                                           __language__(32005),
-                                                           os.path.join(__cwd__,"icon.png")
-                                                          )
-                          )
-      return False  
-    return True
+    return None
 
   def get_element(self, element, tag):
     if element.getElementsByTagName(tag)[0].firstChild:

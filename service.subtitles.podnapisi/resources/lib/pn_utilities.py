@@ -166,21 +166,26 @@ def OpensubtitlesHashRar(firstrarfile):
 
 
 class PNServer:
-  def create(self):
+  def create(self, pod_session = None):
     self.subtitles_list = []
     self.connected = False
-    self.pod_session = None
-    self.podserver   = xmlrpclib.Server('http://ssp.podnapisi.net:8000')      
-    init        = self.podserver.initiate(USER_AGENT)
-    hash        = md5()
-    hash.update(__addon__.getSetting( "PNpass" ))
-    self.password = sha256(str(hash.hexdigest()) + str(init['nonce'])).hexdigest()
-    self.user     = __addon__.getSetting( "PNuser" )
-    if init['status'] == 200:
-      self.pod_session = init['session']
-      self.connected   = self.login()
-      if (self.connected):
-        log( __scriptid__ ,"Connected to Podnapisi server")
+    self.pod_session = pod_session
+    self.podserver   = xmlrpclib.Server('http://ssp.podnapisi.net:8000')
+    if (not self.pod_session):
+      init        = self.podserver.initiate(USER_AGENT)  
+      hash        = md5()
+      hash.update(__addon__.getSetting( "PNpass" ))
+      self.password = sha256(str(hash.hexdigest()) + str(init['nonce'])).hexdigest()
+      self.user     = __addon__.getSetting( "PNuser" )
+      if init['status'] == 200:
+        self.pod_session = init['session']
+        self.connected   = self.login()
+        if (self.connected):
+          log( __scriptid__ ,"Connected to Podnapisi server")
+    else:
+      self.connected = True
+
+    return self.pod_session     
 
   def login(self):
     auth = self.podserver.authenticate(self.pod_session, self.user, self.password)

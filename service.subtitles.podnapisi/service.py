@@ -29,7 +29,7 @@ from pn_utilities import PNServer, log, OpensubtitlesHash, normalizeString, lang
 
 def Search( item ):
   pn_server = PNServer()
-  pn_server.create()    
+  pod_session = pn_server.create()    
   subtitles_list = []
   match          = False
   
@@ -73,14 +73,15 @@ def Search( item ):
       listitem.setProperty( "sync", ("false", "true")[it["sync"]] )
       listitem.setProperty( "hearing_imp", ("false", "true")[it["hearing_imp"]] )
       
-      url = "plugin://%s/?action=download&link=%s&filename=%s&movie_id=%s&season=%s&episode=%s&hash=%s&match=%s" %(__scriptid__,
+      url = "plugin://%s/?action=download&link=%s&filename=%s&movie_id=%s&season=%s&episode=%s&hash=%s&match=%s&login_session=%s" %(__scriptid__,
                                                                                                                     it["link"],
                                                                                                                     it["filename"],
                                                                                                                     it["movie_id"],
                                                                                                                     it["season"],
                                                                                                                     it["episode"],
                                                                                                                     OShash,
-                                                                                                                    str(match)
+                                                                                                                    str(match),
+                                                                                                                    pod_session
                                                                                                                     )
       
       xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=url,listitem=listitem,isFolder=False)
@@ -195,7 +196,7 @@ if params['action'] == 'search':
 
 elif params['action'] == 'download':
   pn_server = PNServer()
-  pn_server.create()
+  pn_server.create(params["login_session"])
   url = pn_server.download(params)
   if url:
     subs = Download(url,params["filename"])

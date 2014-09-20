@@ -25,7 +25,9 @@ __cwd__        = sys.modules[ "__main__" ].__cwd__
 __language__   = sys.modules[ "__main__" ].__language__
 __scriptid__   = sys.modules[ "__main__" ].__scriptid__
 
-USER_AGENT = "%s_v%s" % (__scriptname__.replace(" ","_"),__version__ )
+USER_AGENT   = "%s_v%s" % (__scriptname__.replace(" ","_"),__version__ )
+SEARCH_URL   = "http://www.podnapisi.net/ppodnapisi/search?tbsl=1&sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sXML=1&lang=0"
+DOWNLOAD_URL = "http://www.podnapisi.net/static/podnapisi/%s"
 
 LANGUAGES      = (
 
@@ -101,9 +103,6 @@ def languageTranslate(lang, lang_from, lang_to):
 
 def log(module, msg):
   xbmc.log((u"### [%s] - %s" % (module,msg,)).encode('utf-8'),level=xbmc.LOGDEBUG ) 
-
-def compare_columns(b,a):
-  return cmp( b["language_name"], a["language_name"] )  or cmp( a["sync"], b["sync"] ) 
 
 def normalizeString(str):
   return unicodedata.normalize(
@@ -195,81 +194,71 @@ class PNServer:
       return False  
     return True
 
-  def mergesubtitles( self, stack ):
-    if( len ( self.subtitles_list ) > 0 ):
-      self.subtitles_list = sorted(self.subtitles_list, compare_columns)
-
   def searchsubtitles_pod( self, movie_hash, lang , stack):
     # movie_hash = "e1b45885346cfa0b" # Matrix Hash, Debug only
-    try:
-      if (self.connected):
-        self.podserver.setFilters(self.pod_session, True, lang , False)
-        search = self.podserver.search(self.pod_session , [str(movie_hash)])
-        if search['status'] == 200 and len(search['results']) > 0 :
-          search_item = search["results"][movie_hash]
-          for item in search_item["subtitles"]:
-            if item["lang"]:
-              flag_image = item["lang"]
-            else:                                                           
-              flag_image = "-"
-            if item['release'] == "":
-              episode = search_item["tvEpisode"]
-              if str(episode) == "0":
-                name = "%s (%s)" % (str(search_item["movieTitle"]),str(search_item["movieYear"]),)
-              else:
-                name = "%s S(%s)E(%s)" % (str(search_item["movieTitle"]),str(search_item["tvSeason"]), str(episode), )
+    if (self.connected):
+      self.podserver.setFilters(self.pod_session, True, lang , False)
+      search = self.podserver.search(self.pod_session , [str(movie_hash)])
+      if search['status'] == 200 and len(search['results']) > 0 :
+        search_item = search["results"][movie_hash]
+        for item in search_item["subtitles"]:
+          if item["lang"]:
+            flag_image = item["lang"]
+          else:                                                           
+            flag_image = "-"
+          if item['release'] == "":
+            episode = search_item["tvEpisode"]
+            if str(episode) == "0":
+              name = "%s (%s)" % (str(search_item["movieTitle"]),str(search_item["movieYear"]),)
             else:
-              name = item['release']
-            
-            self.subtitles_list.append({'filename'      : name,
-                                        'link'          : str(item["id"]),
-                                        'movie_id'      : str(search_item["movieId"]),
-                                        'season'        : str(search_item["tvSeason"]),
-                                        'episode'       : str(search_item["tvEpisode"]),     
-                                        'language_name' : languageTranslate((item["lang"]),2,0),
-                                        'language_flag' : flag_image,
-                                        'rating'        : str(int(item['rating'])*2),
-                                        'sync'          : not item["inexact"],
-                                        'hearing_imp'   : "n" in item['flags']
-                                        })
+              name = "%s S(%s)E(%s)" % (str(search_item["movieTitle"]),str(search_item["tvSeason"]), str(episode), )
+          else:
+            name = item['release']
+          
+          self.subtitles_list.append({'filename'      : name,
+                                      'link'          : str(item["id"]),
+                                      'movie_id'      : str(search_item["movieId"]),
+                                      'season'        : str(search_item["tvSeason"]),
+                                      'episode'       : str(search_item["tvEpisode"]),     
+                                      'language_name' : languageTranslate((item["lang"]),2,0),
+                                      'language_flag' : flag_image,
+                                      'rating'        : str(int(item['rating'])*2),
+                                      'sync'          : not item["inexact"],
+                                      'hearing_imp'   : "n" in item['flags']
+                                      })
 
-          self.mergesubtitles(stack)
-      return self.subtitles_list
-    except :
-      return self.subtitles_list
+        self.mergesubtitles(stack)
+    return self.subtitles_list
 
   def searchsubtitlesbyname_pod( self, name, tvshow, season, episode, lang, year, stack ):
     if len(tvshow) > 1:
       name = tvshow
     
-    url = "http://www.podnapisi.net/ppodnapisi/search?tbsl=1&sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sXML=1&lang=0" % (name.replace(" ","+"), ','.join(lang), str(year), str(season), str(episode))
+    url =  SEARCH_URL % (name.replace(" ","+"), ','.join(lang), str(year), str(season), str(episode))
     log( __scriptid__ ,"Search URL - %s" % (url))
     
     subtitles = self.fetch(url)
-         
-    try:
-      if subtitles:
-        for subtitle in subtitles:
-          filename    = self.get_element(subtitle, "release")
 
-          if filename == "":
-            filename = self.get_element(subtitle, "title")
+    if subtitles:
+      for subtitle in subtitles:
+        filename    = self.get_element(subtitle, "release")
 
-          self.subtitles_list.append({'filename'      : filename,
-                                      'link'          : self.get_element(subtitle, "id"),
-                                      'movie_id'      : self.get_element(subtitle, "movieId"),
-                                      'season'        : self.get_element(subtitle, "tvSeason"),
-                                      'episode'       : self.get_element(subtitle, "tvEpisode"),
-                                      'language_name' : languageTranslate(self.get_element(subtitle, "languageId"),1,0),
-                                      'language_flag' : languageTranslate(self.get_element(subtitle, "languageId"),1,2),
-                                      'rating'        : str(int(self.get_element(subtitle, "rating"))*2),
-                                      'sync'          : False,
-                                      'hearing_imp'   : "n" in self.get_element(subtitle, "flags")
-                                      })
-        self.mergesubtitles(stack)
-      return self.subtitles_list
-    except :
-      return self.subtitles_list
+        if filename == "":
+          filename = self.get_element(subtitle, "title")
+
+        self.subtitles_list.append({'filename'      : filename,
+                                    'link'          : self.get_element(subtitle, "id"),
+                                    'movie_id'      : self.get_element(subtitle, "movieId"),
+                                    'season'        : self.get_element(subtitle, "tvSeason"),
+                                    'episode'       : self.get_element(subtitle, "tvEpisode"),
+                                    'language_name' : languageTranslate(self.get_element(subtitle, "languageId"),1,0),
+                                    'language_flag' : languageTranslate(self.get_element(subtitle, "languageId"),1,2),
+                                    'rating'        : str(int(self.get_element(subtitle, "rating"))*2),
+                                    'sync'          : False,
+                                    'hearing_imp'   : "n" in self.get_element(subtitle, "flags")
+                                    })
+      self.mergesubtitles(stack)
+    return self.subtitles_list
   
   def download(self,params):
     if (self.connected):
@@ -283,7 +272,7 @@ class PNServer:
       if str(download['status']) == "200" and len(download['names']) > 0 :
         download_item = download["names"][0]
         if str(download["names"][0]['id']) == str(params["link"]):
-          return "http://www.podnapisi.net/static/podnapisi/%s" % download["names"][0]['filename']
+          return DOWNLOAD_URL % download["names"][0]['filename']
           
     return None
 
@@ -299,3 +288,11 @@ class PNServer:
     socket.close()
     xmldoc = minidom.parseString(result)
     return xmldoc.getElementsByTagName("subtitle")    
+
+  def compare_columns(self, b, a):
+    return cmp( b["language_name"], a["language_name"] )  or cmp( a["sync"], b["sync"] ) 
+
+  def mergesubtitles( self, stack ):
+    if( len ( self.subtitles_list ) > 0 ):
+      self.subtitles_list = sorted(self.subtitles_list, self.compare_columns)
+       

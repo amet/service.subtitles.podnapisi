@@ -267,7 +267,10 @@ class PNServer:
   
   def download(self,params):
     if (self.connected):
-      if (__addon__.getSetting("PNmatch") == 'true' and params["match"] != "False"):
+      if (__addon__.getSetting("PNmatch") == 'true' and
+          params["match"] != "False" and
+          params["hash"] != "000000000000"):
+
         log( __scriptid__ ,"Sending match to Podnapisi server")
         result = self.podserver.match(self.pod_session, params["hash"], int(params["movie_id"]), int(params["season"]), int(params["episode"]), "")
         if result['status'] == 200:

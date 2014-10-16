@@ -204,7 +204,10 @@ class PNServer:
     if (self.connected):
       self.podserver.setFilters(self.pod_session, True, lang , False)
       search = self.podserver.search(self.pod_session , [str(movie_hash)])
-      if search['status'] == 200 and len(search['results']) > 0 :
+      if (search['status'] == 200 and 
+          movie_hash in search["results"] and 
+          len(search['results']) > 0):
+      
         search_item = search["results"][movie_hash]
         for item in search_item["subtitles"]:
           if item["lang"]:

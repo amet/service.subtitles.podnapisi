@@ -153,7 +153,7 @@ if params['action'] == 'search':
   item['file_original_path'] = urllib.unquote(xbmc.Player().getPlayingFile().decode('utf-8'))# Full path of a playing file
   item['3let_language']      = [] #['scc','eng']
   
-  for lang in urllib.unquote(params['languages']).decode('utf-8').split(","):
+  for lang in urllib.unquote(params['languages']).split(","):
     item['3let_language'].append(languageTranslate(lang,0,1))
   
   if item['title'] == "":

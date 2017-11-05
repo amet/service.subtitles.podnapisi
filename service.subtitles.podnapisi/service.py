@@ -180,6 +180,9 @@ if params['action'] == 'search':
   item['title'] = re.sub(r'\(\d+\)', '', item['title']).strip()
   item['tvshow'] = re.sub(r'\(\d+\)', '', item['tvshow']).strip()
 
+  # IMDB ID
+  item['imdb'] = xbmc.getInfoLabel("VideoPlayer.IMDBNumber")
+
   Search(item)
 
 elif params['action'] == 'download':

@@ -25,9 +25,11 @@ __cwd__        = sys.modules[ "__main__" ].__cwd__
 __language__   = sys.modules[ "__main__" ].__language__
 __scriptid__   = sys.modules[ "__main__" ].__scriptid__
 
-USER_AGENT        = "%s_v%s" % (__scriptname__.replace(" ","_"),__version__ )
-SEARCH_URL        = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sXML=1"
-SEARCH_URL_HASH   = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
+USER_AGENT           = "%s_v%s" % (__scriptname__.replace(" ","_"),__version__ )
+SEARCH_URL_IMDB      = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sI=%s&sJ=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
+SEARCH_URL_IMDB_HASH = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sI=%s&sJ=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
+SEARCH_URL           = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sXML=1"
+SEARCH_URL_HASH      = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
 
 DOWNLOAD_URL      = "http://www.podnapisi.net/subtitles/%s/download"
 
@@ -263,31 +265,7 @@ class PNServer:
       self.connected = False 
 
   def SearchSubtitlesWeb( self, item):
-    if len(item['tvshow']) > 1:
-      item['title'] = item['tvshow']
-    
-    if (__addon__.getSetting("PNmatch") == 'true'):
-      url =  SEARCH_URL_HASH % (item['title'].replace(" ","+"),
-                               ','.join([i for i in item['3let_language']
-                                         if isinstance(i, basestring)]),
-                               str(item['year']),
-                               str(item['season']), 
-                               str(item['episode']),
-                               '%s,sublight:%s,sublight:%s' % (item['OShash'],item['SLhash'],md5(item['SLhash']).hexdigest() )
-                               )
-    else:
-      url =  SEARCH_URL % (item['title'].replace(" ","+"),
-                           ','.join(item['3let_language']),
-                           str(item['year']),
-                           str(item['season']), 
-                           str(item['episode'])
-                          )
-
-    log( __scriptid__ ,"Search URL - %s" % (url))
-    
-    subtitles = self.fetch(url)
-
-    if subtitles:
+    def read_subtitles(subtitles):
       for subtitle in subtitles:
         filename    = self.get_element(subtitle, "release")
 
@@ -310,6 +288,60 @@ class PNServer:
                                     'sync'          : hashMatch,
                                     'hearing_imp'   : "n" in self.get_element(subtitle, "flags")
                                     })
+
+    if len(item['tvshow']) > 1:
+      item['title'] = item['tvshow']
+
+    if (__addon__.getSetting("PNmatch") == 'true'):
+      url =  SEARCH_URL_IMDB_HASH % (item['imdb'],
+                                    ','.join([i for i in item['3let_language']
+                                              if isinstance(i, basestring)]),
+                                    str(item['season']),
+                                    str(item['episode']),
+                                    '%s,sublight:%s,sublight:%s' % (item['OShash'],item['SLhash'],md5(item['SLhash']).hexdigest() )
+                                    )
+      fallback_url =  SEARCH_URL_HASH % (item['title'].replace(" ","+"),
+                                         ','.join([i for i in item['3let_language']
+                                                   if isinstance(i, basestring)]),
+                                         str(item['year']),
+                                         str(item['season']),
+                                         str(item['episode']),
+                                         '%s,sublight:%s,sublight:%s' % (item['OShash'],item['SLhash'],md5(item['SLhash']).hexdigest() )
+                                         )
+    else:
+      url =  SEARCH_URL_IMDB % (item['imdb'],
+                                ','.join(item['3let_language']),
+                                str(item['season']),
+                                str(item['episode'])
+                                )
+      fallback_url =  SEARCH_URL % (item['title'].replace(" ","+"),
+                                   ','.join(item['3let_language']),
+                                   str(item['year']),
+                                   str(item['season']),
+                                   str(item['episode'])
+                                   )
+
+    if not item.get('imdb'):
+      url = fallback_url
+
+    log( __scriptid__ ,"Search URL - %s" % (url))
+
+    subtitles = self.fetch(url)
+
+    if subtitles:
+      read_subtitles(subtitles)
+
+    if not self.subtitles_list and url != fallback_url:
+      log( __scriptid__ ,"Search - IMDB ID search failed, fallback to title")
+
+      subtitles = self.fetch(fallback_url)
+
+      log( __scriptid__ ,"Search Fallback URL - %s" % (fallback_url))
+
+      if subtitles:
+        read_subtitles(subtitles)
+
+    if self.subtitles_list:
       self.mergesubtitles()
     return self.subtitles_list
   

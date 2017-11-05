@@ -265,7 +265,8 @@ class PNServer:
     
     if (__addon__.getSetting("PNmatch") == 'true'):
       url =  SEARCH_URL_HASH % (item['title'].replace(" ","+"),
-                               ','.join(item['3let_language']),
+                               ','.join([i for i in item['3let_language']
+                                         if isinstance(i, basestring)]),
                                str(item['year']),
                                str(item['season']), 
                                str(item['episode']),

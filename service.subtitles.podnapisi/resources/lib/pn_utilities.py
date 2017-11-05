@@ -236,6 +236,9 @@ class PNServer:
     self.connected = False
     
   def Login(self):
+    # Currently, login is disabled
+    return
+
     self.podserver   = xmlrpclib.Server('http://ssp.podnapisi.net:8000')
     init        = self.podserver.initiate(USER_AGENT)  
     hash        = md5()
@@ -313,15 +316,15 @@ class PNServer:
   def Download(self,params):
     print params
     subtitle_ids = []
-    if (__addon__.getSetting("PNmatch") == 'true' and params["hash"] != "000000000000"):
-      self.Login()
-      if params["match"] == "True":
-        subtitle_ids.append(str(params["link"]))
+    # if (__addon__.getSetting("PNmatch") == 'true' and params["hash"] != "000000000000"):
+    #   self.Login()
+    #   if params["match"] == "True":
+    #     subtitle_ids.append(str(params["link"]))
 
-      log( __scriptid__ ,"Sending match to Podnapisi server")
-      result = self.podserver.match(self.pod_session, params["hash"], params["movie_id"], int(params["season"]), int(params["episode"]), subtitle_ids)
-      if result['status'] == 200:
-        log( __scriptid__ ,"Match successfuly sent")
+    #   log( __scriptid__ ,"Sending match to Podnapisi server")
+    #   result = self.podserver.match(self.pod_session, params["hash"], params["movie_id"], int(params["season"]), int(params["episode"]), subtitle_ids)
+    #   if result['status'] == 200:
+    #     log( __scriptid__ ,"Match successfuly sent")
 
     return DOWNLOAD_URL % str(params["link"])
 

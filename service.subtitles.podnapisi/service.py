@@ -10,6 +10,7 @@ import xbmcgui,xbmcplugin,shutil
 from zipfile import ZipFile
 from cStringIO import StringIO
 import uuid
+import re
 
 __addon__ = xbmcaddon.Addon()
 __author__     = __addon__.getAddonInfo('author')
@@ -174,8 +175,12 @@ if params['action'] == 'search':
   elif ( item['file_original_path'].find("stack://") > -1 ):
     stackPath = item['file_original_path'].split(" , ")
     item['file_original_path'] = stackPath[0][8:]
-  
-  Search(item)  
+
+  # Remove year part from the title
+  item['title'] = re.sub(r'\(\d+\)', '', item['title']).strip()
+  item['tvshow'] = re.sub(r'\(\d+\)', '', item['tvshow']).strip()
+
+  Search(item)
 
 elif params['action'] == 'download':
   subs = Download(params)

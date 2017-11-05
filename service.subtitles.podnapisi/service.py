@@ -145,7 +145,7 @@ if params['action'] == 'search':
   item = {}
   item['temp']               = False
   item['rar']                = False
-  item['year']               = xbmc.getInfoLabel("VideoPlayer.Year")                         # Year
+  item['year']               = xbmc.getInfoLabel("VideoPlayer.Premiered")                    # Year
   item['season']             = str(xbmc.getInfoLabel("VideoPlayer.Season"))                  # Season
   item['episode']            = str(xbmc.getInfoLabel("VideoPlayer.Episode"))                 # Episode
   item['tvshow']             = normalizeString(xbmc.getInfoLabel("VideoPlayer.TVshowtitle"))  # Show

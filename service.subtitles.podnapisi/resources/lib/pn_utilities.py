@@ -26,7 +26,7 @@ __language__   = sys.modules[ "__main__" ].__language__
 __scriptid__   = sys.modules[ "__main__" ].__scriptid__
 
 USER_AGENT           = "%s_v%s" % (__scriptname__.replace(" ","_"),__version__ )
-SEARCH_URL_IMDB      = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sI=%s&sJ=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
+SEARCH_URL_IMDB      = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sI=%s&sJ=%s&sTS=%s&sTE=%s&sXML=1"
 SEARCH_URL_IMDB_HASH = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sI=%s&sJ=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
 SEARCH_URL           = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sXML=1"
 SEARCH_URL_HASH      = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
@@ -292,17 +292,17 @@ class PNServer:
     if len(item['tvshow']) > 1:
       item['title'] = item['tvshow']
 
+    selected_languages = ','.join([i for i in item['3let_language'] if isinstance(i, basestring)])
+
     if (__addon__.getSetting("PNmatch") == 'true'):
       url =  SEARCH_URL_IMDB_HASH % (item['imdb'],
-                                    ','.join([i for i in item['3let_language']
-                                              if isinstance(i, basestring)]),
+                                    selected_languages,
                                     str(item['season']),
                                     str(item['episode']),
                                     '%s,sublight:%s,sublight:%s' % (item['OShash'],item['SLhash'],md5(item['SLhash']).hexdigest() )
                                     )
       fallback_url =  SEARCH_URL_HASH % (item['title'].replace(" ","+"),
-                                         ','.join([i for i in item['3let_language']
-                                                   if isinstance(i, basestring)]),
+                                         selected_languages,
                                          str(item['year']),
                                          str(item['season']),
                                          str(item['episode']),
@@ -310,12 +310,12 @@ class PNServer:
                                          )
     else:
       url =  SEARCH_URL_IMDB % (item['imdb'],
-                                ','.join(item['3let_language']),
+                                selected_languages,
                                 str(item['season']),
                                 str(item['episode'])
                                 )
       fallback_url =  SEARCH_URL % (item['title'].replace(" ","+"),
-                                   ','.join(item['3let_language']),
+                                   selected_languages,
                                    str(item['year']),
                                    str(item['season']),
                                    str(item['episode'])

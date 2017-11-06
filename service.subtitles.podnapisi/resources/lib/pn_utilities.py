@@ -26,10 +26,10 @@ __language__   = sys.modules[ "__main__" ].__language__
 __scriptid__   = sys.modules[ "__main__" ].__scriptid__
 
 USER_AGENT           = "%s_v%s" % (__scriptname__.replace(" ","_"),__version__ )
-SEARCH_URL_IMDB      = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sI=%s&sJ=%s&sTS=%s&sTE=%s&sXML=1"
-SEARCH_URL_IMDB_HASH = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sI=%s&sJ=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
-SEARCH_URL           = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sXML=1"
-SEARCH_URL_HASH      = "https://www.podnapisi.net/ppodnapisi/search?tbsl=1&sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
+SEARCH_URL_IMDB      = "https://www.podnapisi.net/ppodnapisi/search?sI=%s&sJ=%s&sTS=%s&sTE=%s&sXML=1"
+SEARCH_URL_IMDB_HASH = "https://www.podnapisi.net/ppodnapisi/search?sI=%s&sJ=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
+SEARCH_URL           = "https://www.podnapisi.net/ppodnapisi/search?sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sXML=1"
+SEARCH_URL_HASH      = "https://www.podnapisi.net/ppodnapisi/search?sK=%s&sJ=%s&sY=%s&sTS=%s&sTE=%s&sMH=%s&sXML=1"
 
 DOWNLOAD_URL      = "http://www.podnapisi.net/subtitles/%s/download"
 
